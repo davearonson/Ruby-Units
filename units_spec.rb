@@ -15,20 +15,20 @@ describe 'Unit' do
 
   end
 
-  describe "compatibility" do
+  describe 'compatibility' do
     
-    it "detects exact match" do
-      u = Unit.new 'whatever'
+    it 'detects exact match' do
+      u = Unit.new
       u.compatible?(u).should be_true
     end
 
-    it "detects base mismatch" do
+    it 'detects base mismatch' do
       m = Unit.new 'm'
       s = Unit.new 's'
       m.compatible?(s).should be_false
     end
 
-    it "detects base vs complex mismatch w/ overlap" do
+    it 'detects base vs complex mismatch w/ overlap' do
       m = Unit.new 'm'
       s = Unit.new 's'
       mps = (m / s)
@@ -36,7 +36,7 @@ describe 'Unit' do
       mps.compatible?(m).should be_false
     end
 
-    it "detects base vs complex mismatch w/o overlap" do
+    it 'detects base vs complex mismatch w/o overlap' do
       m = Unit.new 'm'
       s = Unit.new 's'
       mps = m / s
@@ -45,7 +45,7 @@ describe 'Unit' do
       mps.compatible?(kg).should be_false
     end
 
-    it "detects complex mismatch w/ overlap" do
+    it 'detects complex mismatch w/ overlap' do
       m = Unit.new 'm'
       s = Unit.new 's'
       mps = m / s
@@ -55,7 +55,7 @@ describe 'Unit' do
       mps.compatible?(n).should be_false
     end
 
-    it "detects complex mismatch w/o overlap" do
+    it 'detects complex mismatch w/o overlap' do
       m = Unit.new 'm'
       s = Unit.new 's'
       mps = m / s
@@ -66,7 +66,7 @@ describe 'Unit' do
       mps.compatible?(kpk).should be_false
     end
 
-    it "detects one scaling the other" do
+    it 'detects one scaling the other' do
       m = Unit.new 'm'
       i = m / 39.37
       i.compatible?(m).should be_true
@@ -75,9 +75,9 @@ describe 'Unit' do
 
   end
 
-  describe "ratios" do
+  describe 'ratios' do
 
-    it "determines proper ratio directly" do
+    it 'determines proper ratio directly' do
       ft = Unit.new 'ft'
       yd = ft * 3
       inch = ft / 12
@@ -96,7 +96,7 @@ describe 'Unit' do
       
     end
 
-    it "determines proper ratio indirectly" do
+    it 'determines proper ratio indirectly' do
       ft = Unit.new 'ft'
       sf = ft * ft
       yd = ft * 3
@@ -118,7 +118,7 @@ describe 'Unit' do
 
     end
 
-    it "rejects incompatible units" do
+    it 'rejects incompatible units' do
       inch = Unit.new 'inch'
       second = Unit.new 'second'
       lambda { ignored = inch.ratio second }.should raise_error Units::UnitsError
@@ -223,6 +223,91 @@ describe 'Unit' do
 
   end
 
+  describe 'to_s' do
+
+    it 'works for a named base' do
+      name = 'whatever'
+      Unit.new(name).to_s.should == "#{name}"
+    end
+
+    it 'works for an unnamed base' do
+      Unit.new.to_s.should == "UNKNOWN_UNIT"
+    end
+
+    it 'works for a positive powered base' do
+      name = 'whatever'
+      u1 = Unit.new name
+      (u1 * u1 * u1).to_s.should == "#{name} ^ 3"
+    end
+
+    it 'works for a negative powered base' do
+      name = 'whatever'
+      u1 = Unit.new name
+      (u1 / (u1 * u1 * u1)).to_s.should == "#{name} ^ -2"
+    end
+
+    it 'works for a named scaled unit' do
+      inch = Unit.new 'inch'
+      foot = (inch * 12).name! 'foot'  # NOTE NAME!
+      foot.to_s.should == 'foot'
+    end
+
+    it 'works for an unnamed scaled unit' do
+      inch = Unit.new 'inch'
+      foot = inch * 12  # NOTE NO NAME!
+      foot.to_s.should == '12.0 inch'  # scale is always float
+    end
+
+    it 'works for a named complex unit' do
+      kg = Unit.new 'kg'
+      m = Unit.new 'm'
+      s = Unit.new 's'
+      n = (kg * m / (s * s)).name! 'n'
+      j = (n * m).name! 'j'
+      w = (j / s).name! 'w'
+      # note: doesn't matter whether we name n or j
+      w.to_s.should == 'w'
+    end
+
+    it 'works for an UNnamed complex unit' do
+      kg = Unit.new 'kg'
+      m = Unit.new 'm'
+      s = Unit.new 's'
+      n = (kg * m / (s * s)).name! 'n'
+      j = (n * m).name! 'j'
+      w = (j / s)
+      # note: doesn't matter whether we name n or j
+      w.to_s.should == 'kg m ^ 2 / s ^ 3'
+    end
+
+    it 'works for a named scaled complex unit' do
+      kg = Unit.new 'kg'
+      m = Unit.new 'm'
+      s = Unit.new 's'
+      n = kg * m / (s * s)
+      j = n * m
+      w = j / s
+      kw = w * 1000
+      h = s * 3600
+      kwh = (kw * h).name! 'kwh'
+      kwh.to_s.should == 'kwh'
+    end
+
+    it 'works for an UNnamed scaled complex unit' do
+      kg = Unit.new 'kg'
+      m = Unit.new 'm'
+      s = Unit.new 's'
+      n = kg * m / (s * s)
+      j = n * m
+      w = j / s
+      kw = w * 1000
+      h = s * 3600
+      kwh = kw * h
+      kwh.to_s.should == '3600000.0 kg m ^ 2 / s ^ 2'
+    end
+
+  end
+
 end
 
 
@@ -240,6 +325,14 @@ describe Measure do
 
   end
 
+  describe 'inversion' do
+    it 'works' do
+      m = Unit.new
+      s = Unit.new
+      Measure.new( 4,  m / s ).invert.should == Measure.new( 0.25, s / m )
+    end
+  end
+
   describe 'comparison' do
 
     it 'rejects incompatible units' do
@@ -250,7 +343,21 @@ describe Measure do
 
   end
 
-  describe 'conversion' do
+  describe 'explicit conversion' do
+    it 'works' do
+      f = Unit.new
+      s = Unit.new
+      fps = f / s
+      y = f * 3
+      min = s * 60
+      ypm = y / min
+      m = Measure.new( 10, fps ).convert( ypm )
+      m.quantity.should == 200
+      m.unit.should == ypm
+    end
+  end
+
+  describe 'implicit conversion' do
 
     it 'applies * scaled units' do
       ft = Unit.new 'foot'
@@ -378,11 +485,24 @@ describe Measure do
       q1 = 3
       m1 = Measure.new q1, u1
       u2 = Unit.new 'second unit'
-      q2 = 5
+      q2 = 4
       m2 = Measure.new q2, u2
       quotnt = m1 / m2
       quotnt.quantity.should == 1.0 * q1 / q2  # force to float
       quotnt.unit.parts.should == { u1 => 1, u2 => -1 }
+    end
+
+  end
+
+
+  describe 'to_s' do
+
+    # don't need to test anything more complex than this *here*;
+    # it should be tested in Unit's tests
+    it 'works' do
+      q = 1.5
+      name = 'blah'
+      Measure.new( q, Unit.new(name)).to_s.should == "#{q} #{name}"
     end
 
   end

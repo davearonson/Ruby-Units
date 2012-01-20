@@ -4,7 +4,34 @@ Units is a module to allow Ruby programmers to declare and build units
 of measurement, and then use them in measurements, which can be added,
 subtracted, multiplied, divided, and compared.
 
-EXAMPLE
+API
+
+class Unit
+  new [name] -> Unit - create a new base unit
+  breakdown -> String - show the base Units of this Unit
+  compatible Unit -> Boolean - check whether these units can be added
+  invert -> Unit - create a Unit that is the inverse of this one
+  name! String -> Unit - rename and return this Unit
+  ratio Unit -> Float - how many of those are in one of this
+  to_s -> String - name if any, breakdown if complex, or UNKNOWN_UNIT
+  * Unit -> Unit - multiply this Unit by another
+  / Unit -> Unit - divide this Unit by another
+  == Unit -> Boolean - check whether these Units are equal
+
+class Measure
+  new Numeric, Unit -> Measure - create a new Measure
+  convert Unit -> Measure - copy a Measure into a new Unit
+  invert -> Measure - invert & create new (eg, 2 kg/hr -> .5 hr/kg)
+  to_s -> String - output quantity and Unit's to_s
+  + Measure -> Measure - add this to that, creating a new Measure
+  - Measure -> Measure - subtract that from this, making a new Measure
+  * Measure -> Measure - multiply this by that, creating a new Measure
+  / Measure -> Measure - divide this by that, creating a new Measure
+  -@ (unary -) -> Measure - negate making new (eg, -(3 m) == -3 m)
+  == Measure -> Measure - check whether these Measures are equal
+
+
+EXAMPLES
 
 You can declare the base units (with optional names) such as meters,
 kilograms, and seconds:
@@ -18,6 +45,9 @@ Then you can use them to build newtons, joules, and watts, like so:
   newton = (kilogram * meter / (second * second)).name! 'n'
   joule = (newton * meter).name! 'n'
   watt = (joule / second).name! 'w'
+
+(The .name! is optional, but will help if you ever want to output a
+Measure using this Unit.)
 
 You can also multiply or divide them by numbers, to make other units by
 scaling, such as:
@@ -42,9 +72,20 @@ Of course, you can extend these in the other system, such as:
   yard = (foot * 3).name! 'yd'
   oz_av = (pound / 16).name! 'oz_av'
 
+At this time there is no provision for conversions requiring an offset,
+such as between specific temperatures in degrees F versus C or K.  If
+you're only concerned about temperature *changes*, you can use:
+
+  degC = Unit.new 'degC'
+  degF = degC * 100 / (212 - 32)
+
 Under the hood, Units will keep track of the base Units and scale
 factors, that make up your complex Units.  Using the above definitions,
-fl_oz would be defined as 2.9585798816568057e-05 cubic meters.
+fl_oz would be defined as 2.96e-05 cubic meters.  Unit#breakdown shows
+what any Unit is made of, including the scale; fl_oz.breakdown would
+thus be '2.96e-05 m ^ 3', and kilowatt_hour#breakdown would be
+'3600000.0 kg m ^ 2 / s ^ 2'.  Unit#to_s will also give the breakdown,
+if you haven't given the Unit its own name.
 
 So now what do you do with Units?  After creating them, you can use them
 in Measurements, such as:
@@ -59,6 +100,25 @@ you want to know the average flow.
 
   flow = weight / duration
 
-Inspection will show that flow has a quantity of 1/30.  The Unit is
+Measure#to_s will show that flow has a quantity of 1/30.  The Unit is
 kilograms per second, with a scale of 1/60, making it kilograms per
 minute.
+
+Unfortunately, at this time the display of a Measure involving an
+unnamed scaled Unit will show both the Measure's quantity and the Unit's
+scale.  In this case, flow would be "0.033 0.016kg / s".  That's rather
+ugly -- in fact even more so, since I've chopped many digits of
+precision.  You can get around that by naming the resulting unit.  In
+this case we could say "flow.unit.name! 'kg/min'".  Then, flow.to_s
+would be a much nicer "0.033 kg/min".  However, I cannot
+programmatically verify the accuracy of your naming.
+
+FUTURE PLANS
+
+- Track how a Unit was actually built, not just the total breakdown, so
+  as to be able to spit out the breakdown in the most complex *named*
+  units, or possibly an adjustable level, rather than all-or-nothing.
+
+- Adjustable display precision of Measure quantity and Unit scale
+
+- "Do the math" if displaying a Measure with a scaled unnamed Unit.
