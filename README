@@ -1,0 +1,64 @@
+BRIEF DESCRIPTION
+
+Units is a module to allow Ruby programmers to declare and build units
+of measurement, and then use them in measurements, which can be added,
+subtracted, multiplied, divided, and compared.
+
+EXAMPLE
+
+You can declare the base units (with optional names) such as meters,
+kilograms, and seconds:
+
+  kilogram = Unit.new 'kg'
+  meter = Unit.new 'm'
+  second = Unit.new 's'
+
+Then you can use them to build newtons, joules, and watts, like so:
+
+  newton = (kilogram * meter / (second * second)).name! 'n'
+  joule = (newton * meter).name! 'n'
+  watt = (joule / second).name! 'w'
+
+You can also multiply or divide them by numbers, to make other units by
+scaling, such as:
+
+  minute = (second * 60).name! 'min'
+  hour = (minute * 60).name! 'hr'
+  day = (hour * 24).name! 'day'
+  gram = (kilogram / 1000).name! 'g'
+  cm = (meter / 100).name! 'cm'
+  cc = (cm * cm * cm).name! 'cc'
+  liter = (cc * 1000).name! 'l'
+
+This can be useful for conversions to other systems, such as:
+
+  inch = (meter / 39.37).name! 'in'
+  pound = (kilogram / 2.2).name! 'lb'
+  fl_oz = (liter / 33.8).name! 'fl_oz'
+
+Of course, you can extend these in the other system, such as:
+
+  foot = (inch * 12).name! 'ft'
+  yard = (foot * 3).name! 'yd'
+  oz_av = (pound / 16).name! 'oz_av'
+
+Under the hood, Units will keep track of the base Units and scale
+factors, that make up your complex Units.  Using the above definitions,
+fl_oz would be defined as 2.9585798816568057e-05 cubic meters.
+
+So now what do you do with Units?  After creating them, you can use them
+in Measurements, such as:
+
+  diameter = Measure.new 2.5, yard
+  weight = Measure.new 1, kilogram
+  duration = Measure.new 30, minute
+
+Then you can do math on the Measures.  For instance, say the weight is
+for sand in an hourglass, that you want to last for the duration, and
+you want to know the average flow.
+
+  flow = weight / duration
+
+Inspection will show that flow has a quantity of 1/30.  The Unit is
+kilograms per second, with a scale of 1/60, making it kilograms per
+minute.
